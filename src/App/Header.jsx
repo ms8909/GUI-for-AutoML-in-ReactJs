@@ -78,11 +78,11 @@ class Header extends Component {
     }
 
     current(){
-        if(this.props.currentPath === '/dashboard') {
-            return 1
+        if(this.props.location.pathname == '/dashboard') {
+            return 0
         }
-        if(this.props.currentPath === '/datasets') {
-            return 2
+        if(this.props.location.pathname == '/datasets') {
+            return 1
         }
     }
 
@@ -112,6 +112,8 @@ class Header extends Component {
 
     ];
 
+    console.log('props test here', this.props);
+
     return (
         <div className={classes.root}>
             <AppBar position="static" className={classes.appBar}>
@@ -125,7 +127,7 @@ class Header extends Component {
                     </Typography>
                 <div className={classes.tabContainer}>
                     <Tabs
-                        value={this.current() || this.state.value}
+                        value={this.current()}
                         indicatorColor="primary"
                         textColor="primary"
                         onChange={this.handleChange}>

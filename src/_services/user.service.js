@@ -72,7 +72,12 @@ export const userService = {
     mergeConnections,
     getTimeType,
     deployModel,
-    getDeployedModel
+    getDeployedModel,
+    addTesting,
+    getTestingData,
+    startTesting,
+    getTestingGraph,
+    getTaskProgress
 };
 
 function login(email, password) {
@@ -482,14 +487,22 @@ function createTraining(detail) {
     return fetch(`${config.apiUrl}/apis/training/`, requestOptions).then(handleResponse);
 }
 
-
 function addDataset(request, callback) {
     const requestOptions = {
         method: 'POST',
         headers: authHeader(),
         body: request
     };
-    return fetchProgress(`${config.apiUrl}/apis/dataset/upload/`, requestOptions, callback).then(handleResponse);
+    return fetch(`${config.apiUrl}/apis/dataset/upload/`, requestOptions).then(handleResponse);
+}
+
+function addTesting(request) {
+    const requestOptions = {
+        method: 'POST',
+        headers: authHeader(),
+        body: request
+    };
+    return fetch(`${config.apiUrl}/apis/testing/upload/`, requestOptions).then(handleResponse);
 }
 
 function deployModel(request) {
@@ -508,6 +521,38 @@ function getDeployedModel(id) {
         headers: authHeader()
     };
     return fetch(`${config.apiUrl}/apis/deploy/${id}/by-project/`, requestOptions).then(handleResponse);
+}
+
+function getTestingGraph(id) {
+    const requestOptions = {
+        method: 'GET',
+        headers: authHeader()
+    };
+    return fetch(`${config.apiUrl}/apis/deploy/${id}/graph/`, requestOptions).then(handleResponse);
+}
+
+function startTesting(id, project) {
+    const requestOptions = {
+        method: 'GET',
+        headers: authHeader()
+    };
+    return fetch(`${config.apiUrl}/apis/deploy/${id}/testing/?project=${project}`, requestOptions).then(handleResponse);
+}
+
+function getTestingData(id) {
+    const requestOptions = {
+        method: 'GET',
+        headers: authHeader()
+    };
+    return fetch(`${config.apiUrl}/apis/testing/${id}/by-dataset/`, requestOptions).then(handleResponse);
+}
+
+function getTaskProgress(id) {
+    const requestOptions = {
+        method: 'GET',
+        headers: authHeader()
+    };
+    return fetch(`${config.apiUrl}/apis/project/${id}/task/`, requestOptions).then(handleResponse);
 }
 
 function deleteProject(id) {

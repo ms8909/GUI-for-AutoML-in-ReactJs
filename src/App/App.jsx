@@ -12,6 +12,7 @@ import { DefineInputPage } from '../DefineInputPage';
 import { IndexPage } from '../IndexPage';
 import { TrainingPage } from '../TrainingPage';
 import { GraphPage } from '../GraphPage';
+import { DatasetPage } from '../DatasetPage';
 import { Header } from './Header';
 import './app.css'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
@@ -102,6 +103,7 @@ class App extends React.Component {
                                             <PrivateRoute path="/input/:id" component={DefineInputPage} />
                                             <Route exact path="/" component={LoginPage} />
                                             <Route path="/register" component={RegisterPage} />
+                                            <Route path="/datasets" component={DatasetPage} />
                                             <PrivateRoute exact path="/dashboard" component={IndexPage} />
                                             <PrivateRoute path="/training/:id" component={TrainingPage} />
                                             <PrivateRoute path="/graph/:id" component={GraphPage} />

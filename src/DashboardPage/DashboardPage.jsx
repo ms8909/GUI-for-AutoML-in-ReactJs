@@ -38,6 +38,39 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import Checkbox from '@material-ui/core/Checkbox';
+import HeatMap from 'react-heatmap-grid';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import {Bar, HorizontalBar} from 'react-chartjs-2';
+
+import {
+    Histogram,
+    BarSeries,
+    DensitySeries,
+    XAxis,
+    YAxis,
+    PatternLines,
+    LinearGradient,
+    withParentSize,
+} from '@data-ui/histogram';
+import { chartTheme } from '@data-ui/theme';
+
+
+const ResponsiveHistogram = withParentSize(({ parentWidth, parentHeight, children, ...rest }) => (
+    <Histogram
+        width={parentWidth}
+        height={parentWidth}
+        theme={chartTheme}
+        {...rest}
+    >
+        {children}
+    </Histogram>
+));
+
+var EventEmitter = require('events');
 
 const styles = theme => ({
     root: {
@@ -104,7 +137,22 @@ const styles = theme => ({
     nested: {
         paddingLeft: theme.spacing.unit * 5,
     },
+    heatMap: {
+        '& > div': {
+            fontSize: '13px',
+            fontFamily: 'roboto',
+            fontWeight: 'bold',
+            '& > div:first-child':{
+                '& > div':{
+                    transform: 'rotate(-40deg)',
+                }
+            }
+        }
+    }
 });
+
+let channelSubscriber;
+let ee = new EventEmitter();
 
 class DashboardPage extends React.Component {
     constructor(props){
@@ -115,6 +163,7 @@ class DashboardPage extends React.Component {
         this.mergeLinks = this.mergeLinks.bind(this);
         this.proceedTraining = this.proceedTraining.bind(this);
         this.handleChecked = this.handleChecked.bind(this);
+        this.transformDataToHistogram = this.transformDataToHistogram.bind(this);
         this.state = {
             selected : -1,
             tab: 0,
@@ -123,12 +172,14 @@ class DashboardPage extends React.Component {
             dirty: false,
             current: 0,
             checked: [],
-            all: false
+            all: false,
+            graph_modal: false
         }
     }
 
     componentWillUnmount() {
-        // ch.unbind();
+        channelSubscriber.unbind();
+        ee.removeAllListeners('error');
     }
 
     componentDidMount() {
@@ -141,32 +192,60 @@ class DashboardPage extends React.Component {
         this.props.dispatch(projectActions.getRole());
         this.props.dispatch(projectActions.getImputation());
         this.props.dispatch(projectActions.getConnections(id));
+        this.props.dispatch(projectActions.getTaskProgress(id));
 
         const pusher = new Pusher('469a4013ee4603be5010', {
             cluster: 'ap2',
             forceTLS: true
         });
         const channel = pusher.subscribe(this.props.authentication.user.id.toString());
-
+        channelSubscriber = channel;
         let context = this;
         channel.bind('read_csv', data => {
             console.log('progress csv here', data);
-            if(data.message.step == 4){
+            if(data.message.step == 4) {
                 context.props.dispatch(projectActions.getProject(context.state.project_id));
+                context.setState({
+                    progress: data.message
+                })
             }
-            context.setState({
-                progress: data.message
-            })
+            else if(data.message.step == 5){
+                context.setState({
+                    progress: {step: -1}
+                })
+                context.props.dispatch(alertActions.error('Error uploading dataset.'));
+            }
+            else{
+                context.setState({
+                    progress: data.message
+                })
+            }
         });
         channel.bind('merge_csv', data => {
             console.log('progress merge here', data);
             if(data.message.step == 4){
                 context.props.dispatch(projectActions.getProject(context.state.project_id));
+                context.setState({
+                    progress: data.message
+                })
             }
-            context.setState({
-                progress: data.message
-            })
+            else if(data.message.step == 5){
+                context.setState({
+                    progress: {step: -1}
+                })
+                context.props.dispatch(alertActions.error('Error merging dataset.'));
+            }
+            else{
+                context.setState({
+                    progress: data.message
+                })
+            }
         });
+        ee.on('error', function (text) {
+            context.setState({
+                progress: {step: -1}
+            })
+        })
     }
 
     handleDeleteUser(id) {
@@ -304,15 +383,27 @@ class DashboardPage extends React.Component {
     componentWillReceiveProps(nextProps) {
         let {groups, authenticating} = this.props;
         let nextGroups = nextProps.groups;
-
-        // if(groups.metas != nextGroups.metas && nextGroups.metas && nextGroups.metas.length > 0){
-        //     console.log('here it is', nextGroups.metas);
-        //     let li = [];
-        //     for(let meta of nextGroups.metas[this.state.dataset].meta){
-        //         li.push(meta.id)
-        //     }
-        //     this.setState({'checked': li, 'all': true})
-        // }
+            if (groups.task != nextGroups.task) {
+                if(nextGroups.task.result.event == 'read_csv' || nextGroups.task.result.event == 'merge_csv') {
+                    if (nextGroups.task.result.step != 5) {
+                        this.setState({
+                            progress: nextGroups.task.result
+                        })
+                    } else {
+                        this.props.dispatch(alertActions.error('Error in task.'));
+                    }
+                    if(nextGroups.task.result.event == 'read_csv'){
+                        this.setState({
+                            progress: {current: 0}
+                        })
+                    }
+                    else{
+                        this.setState({
+                            progress: {current: 1}
+                        })
+                    }
+                }
+            }
         if (groups.project != nextGroups.project) {
             this.props.dispatch(projectActions.clearState());
             var sets = [];
@@ -329,7 +420,7 @@ class DashboardPage extends React.Component {
                     text: set.name,
                     isLeaf: true
                 })
-                this.props.dispatch(projectActions.getDatasetMeta({id: set.id, name: set.name, status: set.status, rows: set.rows}))
+                this.props.dispatch(projectActions.getDatasetMeta({id: set.id, name: set.name, status: set.status, rows: set.rows, heat: set.grid_map}))
                 this.props.dispatch(projectActions.getDatasetData(set.id))
             }
         }
@@ -378,8 +469,29 @@ class DashboardPage extends React.Component {
         this.handleAllChecked(checked)
     }
 
+
+    transformDataToHistogram(distribution_data){
+        let data = []
+        let x = distribution_data.x;
+        let y = distribution_data.y;
+        for(let i = 0; i < x.length -1 ;i++){
+            data.push(
+                { bin0: x[i], bin1: x[i+1], count: y[i], id: i },
+            )
+        }
+        return data;
+    }
+
+
     render() {
         const { groups, classes, authentication } = this.props;
+
+        const xLabels = new Array(24).fill(0).map((_, i) => `${i}`);
+        const yLabels = ['Sun', 'Mon', 'Tue'];
+        const data = new Array(yLabels.length)
+            .fill(0)
+            .map(() => new Array(xLabels.length).fill(0).map(() => Math.floor(Math.random() * 100)));
+
 
         const statusSteps = [
             {step: 0, text: 'Uploading data'},
@@ -394,6 +506,21 @@ class DashboardPage extends React.Component {
             {step: 2, text: 'Analyzing & saving dataset'},
             {step: 3, text: 'Displaying data'},
         ];
+
+        const distribution_data = this.state.selected_meta && {
+            labels: this.state.selected_meta.distribution_data.x,
+            datasets: [
+                {
+                    label: 'Distribution data',
+                    backgroundColor: 'rgba(255,99,132,0.2)',
+                    borderColor: 'rgba(255,99,132,1)',
+                    borderWidth: 1,
+                    hoverBackgroundColor: 'rgba(255,99,132,0.4)',
+                    hoverBorderColor: 'rgba(255,99,132,1)',
+                    data: this.state.selected_meta.distribution_data.y
+                }
+            ]
+        };
 
         const steps = this.state.current == 0 ? statusSteps : mergeSteps;
 
@@ -476,7 +603,13 @@ class DashboardPage extends React.Component {
         //     { from: "Sales", fromPort: "id", to: "Customers", toPort: "id" },
         // ];
 
-        const linkData = []
+        const linkData = [];
+
+        const binnedNumeric = [
+            { bin0: 0, bin1: 5, count: 5, id: 1 },
+            { bin0: 5, bin1: 10, count: 10, id: 2 },
+            { bin0: 10, bin1: 20, count: 2, id: 3 },
+        ]
 
         // const data = [
         //     {id: '1', sale: '100',time: '10th Jan, 2018', color: 'red'},
@@ -566,14 +699,17 @@ class DashboardPage extends React.Component {
                             </Select>
                         </TableCell>
                         <TableCell align="left">
-                            <Grid container style={{display:'flex',flexWrap:'wrap', width: '200px'}}>
-                                <Typography variant="body2" gutterBottom><span className={classes.bold}>Mean: </span>{parseFloat(row.mean).toFixed(2)},&nbsp;</Typography>
-                                <Typography variant="body2" gutterBottom><span className={classes.bold}>Stdev: </span>{parseFloat(row.stdev).toFixed(2)},&nbsp;</Typography>
-                                <Typography variant="body2" gutterBottom><span className={classes.bold}>Min: </span>{parseFloat(row.min).toFixed(2)},&nbsp;</Typography>
-                                <Typography variant="body2" gutterBottom><span className={classes.bold}>Max: </span>{parseFloat(row.max).toFixed(2)},&nbsp;</Typography>
-                                <Typography variant="body2" gutterBottom><span className={classes.bold}>Count: </span>{parseFloat(row.count).toFixed(2)},&nbsp;</Typography>
-                                <Typography variant="body2" gutterBottom><span className={classes.bold}>Missing: </span>{parseFloat(row.missing).toFixed(2)}&nbsp;</Typography>
-                            </Grid>
+                            {/*<Grid container style={{display:'flex',flexWrap:'wrap', width: '200px'}}>*/}
+                                {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Mean: </span>{parseFloat(row.mean).toFixed(2)},&nbsp;</Typography>*/}
+                                {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Stdev: </span>{parseFloat(row.stdev).toFixed(2)},&nbsp;</Typography>*/}
+                                {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Min: </span>{parseFloat(row.min).toFixed(2)},&nbsp;</Typography>*/}
+                                {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Max: </span>{parseFloat(row.max).toFixed(2)},&nbsp;</Typography>*/}
+                                {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Count: </span>{parseFloat(row.count).toFixed(2)},&nbsp;</Typography>*/}
+                                {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Missing: </span>{parseFloat(row.missing).toFixed(2)}&nbsp;</Typography>*/}
+                            {/*</Grid>*/}
+                            <Button onClick={(e) => {this.setState({graph_modal: true, selected_meta: row})}} size="small" color="secondary">
+                                View distribution
+                            </Button>
                         </TableCell>
                     </TableRow>
                 ))}
@@ -733,6 +869,7 @@ class DashboardPage extends React.Component {
                                         >
                                             <Tab label="View metadata" />
                                             <Tab label="View data" />
+                                            <Tab label="View graph" />
                                         </Tabs>
                                     </Grid>
                                     { (this.state.progress.step == -1 || this.state.progress.step == 4) &&
@@ -792,6 +929,46 @@ class DashboardPage extends React.Component {
                                 </div>
                                 }
 
+                                {this.state.tab === 2 &&
+                                <div className={classes.tabContainer}>
+                                    <Typography variant="h6" gutterBottom>Pearson corelation</Typography>
+                                    <div className={classes.heatMap}>
+                                        <HeatMap
+                                            xLabels={groups.metas[this.state.dataset].dataset.heat.pearson.x}
+                                            yLabels={groups.metas[this.state.dataset].dataset.heat.pearson.y}
+                                            data={groups.metas[this.state.dataset].dataset.heat.pearson.array}
+                                            xLabelWidth={20}
+                                            yLabelWidth={200}
+                                            yLabelTextAlign='left'
+                                            cellStyle={(background, value, min, max, data, x, y) => ({
+                                                background: `rgb(66, 86, 244, ${1 - (max - value) / (max - min)})`,
+                                                fontSize: "11px",
+                                            })}
+                                            cellRender={value => value && `${parseFloat(value).toFixed(2)}`}
+                                        />
+                                    </div>
+                                    <br/>
+                                    <br/>
+                                    <Typography variant="h6" gutterBottom>Spearman corelation</Typography>
+                                    <div className={classes.heatMap}>
+                                        <HeatMap
+                                            xLabels={groups.metas[this.state.dataset].dataset.heat.spearman.x}
+                                            yLabels={groups.metas[this.state.dataset].dataset.heat.spearman.y}
+                                            data={groups.metas[this.state.dataset].dataset.heat.spearman.array}
+                                            xLabelWidth={20}
+                                            yLabelWidth={200}
+                                            yLabelTextAlign='left'
+                                            cellStyle={(background, value, min, max, data, x, y) => ({
+                                                background: `rgb(66, 86, 244, ${1 - (max - value) / (max - min)})`,
+                                                fontSize: "11px",
+                                            })}
+                                            cellRender={value => value && `${parseFloat(value).toFixed(2)}`}
+                                        />
+                                    </div>
+
+                                </div>
+                                }
+
                             </Paper>
                             </div>
 
@@ -800,6 +977,85 @@ class DashboardPage extends React.Component {
                         </Grid>
                     </Grid>
                 </Grid>
+                <Dialog
+                    open={this.state.graph_modal}
+                    onClose={()=>{this.setState({graph_modal: false, selected_meta: undefined})}}
+                    aria-labelledby="form-dialog-title"
+                >
+                    <DialogTitle id="form-dialog-title">Distribution data</DialogTitle>
+                    {this.state.selected_meta &&
+                        <DialogContent>
+                        <DialogContentText>
+
+                            <Typography variant="body2" gutterBottom>{this.state.selected_meta.column_name}</Typography>
+                            <br/>
+
+                            <Grid container style={{width: '40vw'}}>
+                                <Grid item xs={5}>
+                                    <Typography variant="subtitle2" gutterBottom>Mean</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.mean).toFixed(2)}</Typography>
+                                    <br/>
+                                    <Typography variant="subtitle2" gutterBottom>Stdev</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.stdev).toFixed(2)}</Typography>
+                                    <br/>
+                                    <Typography variant="subtitle2" gutterBottom>Count</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.stdev).toFixed(2)}</Typography>
+                                    <br/>
+
+
+                                    {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Mean: </span>{parseFloat(row.mean).toFixed(2)},&nbsp;</Typography>*/}
+                                    {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Stdev: </span>{parseFloat(row.stdev).toFixed(2)},&nbsp;</Typography>*/}
+                                    {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Min: </span>{parseFloat(row.min).toFixed(2)},&nbsp;</Typography>*/}
+                                    {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Max: </span>{parseFloat(row.max).toFixed(2)},&nbsp;</Typography>*/}
+                                    {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Count: </span>{parseFloat(row.count).toFixed(2)},&nbsp;</Typography>*/}
+                                    {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Missing: </span>{parseFloat(row.missing).toFixed(2)}&nbsp;</Typography>*/}
+
+
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="subtitle2" gutterBottom>Min</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.min).toFixed(2)}</Typography>
+                                    <br/>
+                                    <Typography variant="subtitle2" gutterBottom>Max</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.max).toFixed(2)}</Typography>
+                                    <br/>
+                                    <Typography variant="subtitle2" gutterBottom>Missing values</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.missing).toFixed(2)}</Typography>
+                                </Grid>
+                            </Grid>
+                        </DialogContentText>
+                            {
+                                this.state.selected_meta.distribution_data.graph_type == 'histogram' ?
+                                <ResponsiveHistogram binType="numeric">
+                                    <PatternLines
+                                        id="categorical"
+                                        height={8}
+                                        width={8}
+                                        background="#fff"
+                                        stroke={chartTheme.colors.default}
+                                        strokeWidth={0.5}
+                                        orientation={['diagonal']}
+                                    />
+                                    <BarSeries
+                                        binnedData={this.transformDataToHistogram(this.state.selected_meta.distribution_data)}
+                                        stroke={chartTheme.colors.default}
+                                        fill="url(#categorical)"
+                                        fillOpacity={0.7}
+                                    />
+                                    <XAxis/>
+                                    <YAxis/>
+                                </ResponsiveHistogram>:
+                                    <Bar data={distribution_data} />
+                            }
+
+                    </DialogContent>
+                    }
+                    <DialogActions>
+                        <Button  onClick={()=>{this.setState({graph_modal: false, selected_meta: undefined})}} color="primary">
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </div>
 
 

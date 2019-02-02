@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import './index.css';
-import {projectActions, userActions} from '../_actions';
+import {alertActions, projectActions, userActions} from '../_actions';
 import Steps, { Step } from 'rc-steps';
 import CircularProgressbar from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
@@ -22,6 +22,7 @@ import Tab from '@material-ui/core/Tab';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Pusher from "pusher-js";
+import { withRouter } from "react-router";
 
 /*
 backgroundColor: theme.palette.grey['100'],
@@ -57,6 +58,8 @@ const styles = theme => ({
     }
 });
 
+let channelSubscriber;
+
 class TrainingPage extends React.Component {
     constructor(props) {
         super(props);
@@ -75,12 +78,23 @@ class TrainingPage extends React.Component {
     }
 
     componentWillUnmount() {
-        // ch.unbind();
+        channelSubscriber.unbind();
     }
 
     componentWillReceiveProps(nextProps) {
         let {groups, authenticating} = this.props;
         let nextGroups = nextProps.groups;
+        if(groups.task!=nextGroups.task){
+            if(nextGroups.task.result.event == 'train_csv') {
+                if (nextGroups.task.result.step != 5) {
+                    this.setState({
+                        progress: nextGroups.task.result
+                    })
+                } else {
+                    this.props.dispatch(alertActions.error('Error in task.'));
+                }
+            }
+        }
         if (groups.project != nextGroups.project) {
             this.props.dispatch(projectActions.clearState());
             var sets = [];
@@ -109,30 +123,38 @@ class TrainingPage extends React.Component {
 
         const channel = pusher.subscribe(this.props.authentication.user.id.toString());
 
+        channelSubscriber = channel;
+
         let context = this;
         channel.bind('train_csv', data => {
             console.log('progress train here', data);
-            if(data.message.step == 3){
-                console.log('progress here');
-                this.setState({
-                    ETR: data.message.ETR,
-                    completed: data.message.completed,
-                })
-                this.props.dispatch(projectActions.geTrainingModels(this.props.groups.training_detail[0].id))
-            }
-            if(data.message.step == 4){
-                this.setState({
-                    deployable: true,
-                })
-            }
             context.setState({
                 progress: data.message
             })
+            if(data.message.step == 3){
+                console.log('progress here');
+                context.setState({
+                    ETR: data.message.ETR,
+                    completed: data.message.completed,
+                })
+                context.props.dispatch(projectActions.geTrainingModels(context.props.groups.training_detail[0].id))
+            }
+            else if(data.message.step == 4){
+                context.setState({
+                    deployable: true,
+                })
+            }
+            else if(data.message.step == 5) {
+                context.props.dispatch(alertActions.error('Error occured during training.'));
+                context.props.history.push('/dashboard/'+context.state.project_id);
+
+            }
         });
 
         this.props.dispatch(projectActions.getProject(id));
         this.props.dispatch(projectActions.geTrainingDetail(id));
-        this.props.dispatch(projectActions.geTrainingMetric())
+        this.props.dispatch(projectActions.geTrainingMetric());
+        this.props.dispatch(projectActions.getTaskProgress(id));
     }
 
 
@@ -700,5 +722,5 @@ function mapStateToProps(state) {
     };
 }
 
-const connectedTrainingPage = withStyles(styles)(connect(mapStateToProps)(TrainingPage));
+const connectedTrainingPage = withRouter(withStyles(styles)(connect(mapStateToProps)(TrainingPage)));
 export { connectedTrainingPage as TrainingPage };

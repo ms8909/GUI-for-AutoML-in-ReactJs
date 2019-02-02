@@ -245,7 +245,11 @@ export function groups(state = {}, action) {
       });
     case projectConstants.GET_PROGRESS_SUCCESS:
       return Object.assign({}, state, {
-        progress: progress,
+        progress: action.progress,
+      });
+    case projectConstants.GET_TASK_PROGRESS:
+      return Object.assign({}, state, {
+        task: action.task,
       });
     case projectConstants.CLEAR_META_STATE:
       return Object.assign({}, state, {
@@ -255,6 +259,34 @@ export function groups(state = {}, action) {
     case projectConstants.GET_DEPLOYED_MODEL:
       return Object.assign({}, state, {
           deployed: action.model,
+      });
+
+      case projectConstants.GET_TESTING_GRAPH:
+          return Object.assign({}, state, {
+              graph: action.graph,
+          });
+    case projectConstants.GET_TESTING_SET:
+      let {testing, deployed} = state;
+      if(testing == undefined)testing=[];
+      testing.push(action.testing);
+      let t = false;
+      if(deployed!=undefined && deployed.length>0){
+        for(let test of testing){
+          if(deployed[0].model_d.training.processed_file_d.parent == null){
+            if(test[0].data == deployed[0].model_d.training.processed_file)t=true;
+          }
+          else{
+            let c = 0;
+            for(let parent of deployed[0].model_d.training.processed_file_d.parent.dataset){
+              if(parent == test[0].data)c++;
+            }
+            if(c == testing.length)t=true;
+          }
+        }
+      }
+      return Object.assign({}, state, {
+        testing: testing,
+        testable: t,
       });
     case projectConstants.GET_META_SUCCESS:
       let {metas, tables} = state;

@@ -2,6 +2,7 @@ import { projectConstants } from '../_constants';
 import { userService } from '../_services';
 import { alertActions, loaderActions } from './';
 import { history } from '../_helpers';
+var EventEmitter = require('events');
 
 export const projectActions = {
     getTags,
@@ -52,7 +53,13 @@ export const projectActions = {
     setDataset,
     getTimeType,
     deployModel,
-    getDeployedModel
+    getDeployedModel,
+    addTraining,
+    getTestingSets,
+    startTesting,
+    getTestingGraph,
+    getTaskProgress,
+
 };
 
 
@@ -366,7 +373,18 @@ function getDeployedModel(id) {
             .then(
                 model => {
                     if(model.success)
-                        dispatch(success(model.data))
+                        dispatch(success(model.data));
+                        if(model.data.length > 0){
+                            let model_d = model.data[0].model_d;
+                            if(model_d.training.processed_file_d.parent == undefined){
+                                dispatch(projectActions.getTestingSets(model_d.training.processed_file))
+                            }
+                            else{
+                                for(let i of model_d.training.processed_file_d.parent.dataset){
+                                    dispatch(projectActions.getTestingSets(i))
+                                }
+                            }
+                        }
                     dispatch(loaderActions.requesting(false));
                 },
                 error => {
@@ -377,6 +395,67 @@ function getDeployedModel(id) {
     };
     function success(model) { return { type: projectConstants.GET_DEPLOYED_MODEL, model } }
 }
+
+function getTestingSets(id) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.getTestingData(id)
+            .then(
+                training => {
+                    if(training.success)
+                        dispatch(success(training.data));
+                    dispatch(loaderActions.requesting(false));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+    function success(testing) { return { type: projectConstants.GET_TESTING_SET, testing } }
+}
+
+
+function getTestingGraph(id) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.getTestingGraph(id)
+            .then(
+                graph => {
+                    if(graph.success)
+                        dispatch(success(graph.data));
+                    dispatch(loaderActions.requesting(false));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+    function success(graph) { return { type: projectConstants.GET_TESTING_GRAPH, graph } }
+}
+
+function startTesting(id, project) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.startTesting(id, project)
+            .then(
+                training => {
+                    if(training.success)
+                        dispatch(alertActions.success('Testing started successful'));
+                    dispatch(loaderActions.requesting(false));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+}
+
 
 function getConnections(id) {
     return dispatch => {
@@ -396,6 +475,27 @@ function getConnections(id) {
             );
     };
     function success(connections) { return { type: projectConstants.GET_META_CONNECTION, connections } }
+}
+
+
+function getTaskProgress(id) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.getTaskProgress(id)
+            .then(
+                task => {
+                    if(task.success)
+                        dispatch(success(task.data))
+                    dispatch(loaderActions.requesting(false));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    // dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+    function success(task) { return { type: projectConstants.GET_TASK_PROGRESS, task } }
 }
 
 
@@ -675,11 +775,13 @@ function addDataset(request, id) {
             .then(
                 project => {
                     if(project.success)
-                        dispatch(alertActions.success('Dataset added successful'));
+                        dispatch(alertActions.success('Dataset task added successfully'));
                     dispatch(loaderActions.requesting(false));
-                    dispatch(getProject(id));
+                    // dispatch(getProject(id));
                 },
                 error => {
+                    var ee = new EventEmitter()
+                    ee.emit('error', 'failed!');
                     dispatch(loaderActions.requesting(false));
                     dispatch(alertActions.error(error.toString()));
                 }
@@ -696,6 +798,25 @@ function addDataset(request, id) {
     }
 }
 
+function addTraining(request, id) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.addTesting(request)
+            .then(
+                project => {
+                    if(project.success)
+                        dispatch(alertActions.success('Testing data uploaded successfully'));
+                    dispatch(loaderActions.requesting(false));
+                    // dispatch(getProject(id));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+}
 
 
 function getUsers() {
