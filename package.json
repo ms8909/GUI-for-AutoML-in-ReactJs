@@ -7,13 +7,15 @@
   },
   "license": "MIT",
   "scripts": {
-    "start": "webpack-dev-server --open"
+    "start": "webpack-dev-server --open",
+    "build": "webpack --mode production"
   },
   "dependencies": {
     "@data-ui/histogram": "0.0.75",
     "@material-ui/core": "^3.9.0",
     "@material-ui/icons": "^3.0.2",
     "chart.js": "^2.7.3",
+    "chartjs-plugin-zoom": "^0.6.6",
     "classnames": "^2.2.6",
     "css-loader": "^2.1.0",
     "deni-react-treeview": "^0.2.15",
@@ -33,6 +35,7 @@
     "react-dom": "^16.0.0",
     "react-dropzone": "^8.0.3",
     "react-facebook-login": "^4.1.1",
+    "react-ga": "^2.5.7",
     "react-google-login": "^4.0.1",
     "react-heatmap-grid": "^0.7.3",
     "react-paginate": "^6.2.1",

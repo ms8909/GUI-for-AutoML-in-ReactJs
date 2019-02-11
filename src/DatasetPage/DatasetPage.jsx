@@ -26,6 +26,7 @@ const styles = theme => ({
         backgroundColor: theme.palette.grey['100'],
         paddingBottom: 200,
         paddingTop: 50,
+        minHeight: '70vh'
     },
     heading: {
         fontSize: theme.typography.pxToRem(15),
@@ -99,7 +100,14 @@ const styles = theme => ({
     },
     innerGrid: {
         padding: '10px 0'
-    }
+    },
+    expansion: {
+        width: '100%',
+        '&::before': {
+            top: 0
+        }
+    },
+
 });
 
 class DatasetPage extends React.Component {
@@ -136,7 +144,7 @@ class DatasetPage extends React.Component {
                             </div>
                         </div>
                         {   groups.projects && groups.projects.map((obj) =>
-                                <ExpansionPanel style={{width: '100%'}}>
+                                <ExpansionPanel className={classes.expansion}>
                                     <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
                                         <Typography className={classes.heading}>{obj.name}</Typography>
                                     </ExpansionPanelSummary>

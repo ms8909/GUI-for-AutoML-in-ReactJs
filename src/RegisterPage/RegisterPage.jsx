@@ -4,7 +4,71 @@ import { connect } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { userActions } from '../_actions';
 import * as Yup from 'yup';
+import Avatar from '@material-ui/core/Avatar';
+import Button from '@material-ui/core/Button';
+import CssBaseline from '@material-ui/core/CssBaseline';
+import FormControl from '@material-ui/core/FormControl';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Checkbox from '@material-ui/core/Checkbox';
+import Input from '@material-ui/core/Input';
+import InputLabel from '@material-ui/core/InputLabel';
+import Paper from '@material-ui/core/Paper';
+import Typography from '@material-ui/core/Typography';
+import withStyles from '@material-ui/core/styles/withStyles';
 
+import logo from '../images/logo.png';
+
+const styles = theme => ({
+    main: {
+        width: 'auto',
+        display: 'block', // Fix IE 11 issue.
+        marginLeft: theme.spacing.unit * 3,
+        marginRight: theme.spacing.unit * 3,
+        marginBottom: '3rem',
+        [theme.breakpoints.up(400 + theme.spacing.unit * 3 * 2)]: {
+            width: 500,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+        },
+    },
+    paper: {
+        marginTop: theme.spacing.unit * 8,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: `${theme.spacing.unit * 2}px ${theme.spacing.unit * 3}px ${theme.spacing.unit * 3}px`,
+        backgroundColor: '#1F1D1E',
+        "& > *":{
+            color: '#FFF',
+        }
+    },
+    avatar: {
+        margin: theme.spacing.unit,
+        backgroundColor: theme.palette.secondary.main,
+    },
+    form: {
+        width: '100%', // Fix IE 11 issue.
+        marginTop: theme.spacing.unit,
+    },
+    submit: {
+        marginTop: theme.spacing.unit * 3,
+    },
+    inputLabel: {
+        color: "#FFF"
+    },
+    inputField:{
+        color: '#FFF',
+        '&::before':{
+            borderBottom: '1px solid #FFF!important'
+        },
+    },
+    customColor: {
+        color: "#FFF",
+        '& > a': {
+            color: theme.palette.primary.main,
+        }
+    }
+});
 
 class RegisterPage extends React.Component {
     constructor(props) {
@@ -56,7 +120,7 @@ class RegisterPage extends React.Component {
     }
 
     render() {
-        const { registering  } = this.props;
+        const { registering, classes } = this.props;
         const { user, submitted } = this.state;
         const signupValidationSchema = Yup.object().shape({
             first_name: Yup.string()
@@ -81,51 +145,89 @@ class RegisterPage extends React.Component {
             validationSchema={signupValidationSchema}
             onSubmit={this.handleSubmit}
         >
-            {({ isSubmitting }) => (
+            {({  isSubmitting, values, errors, touched, handleChange }) => (
                 <Form>
-                    <div className="form-group">
-                        <label htmlFor="first_name">First name</label>
-                        <Field type="text" className="form-control" name="first_name" />
-                        <ErrorMessage name="first_name" className="help-block" component="div" />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="last_name">Last name</label>
-                        <Field type="text" className="form-control" name="last_name" />
-                        <ErrorMessage name="last_name" className="help-block" component="div" />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="company_email">Company name</label>
-                        <Field type="text" className="form-control" name="company_name" />
-                        <ErrorMessage name="company_name" className="help-block" component="div" />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="email">Email</label>
-                        <Field type="text" className="form-control" name="email" />
-                        <ErrorMessage name="email" className="help-block" component="div" />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="password">Password</label>
-                        <Field type="password" className="form-control" name="password" />
-                        <ErrorMessage name="password" className="help-block" component="div" />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="email">Confirm password</label>
-                        <Field type="password" className="form-control" name="confirm" />
-                        <ErrorMessage name="confirm" className="help-block" component="div" />
-                    </div>
-                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+
+                    <FormControl margin="normal" required fullWidth>
+                        <InputLabel htmlFor="first_name" className={classes.inputLabel}>First name</InputLabel>
+                        <Input id="first_name" name="first_name" className={classes.inputField} autoFocus value={values.first_name} onChange={handleChange} />
+                        {errors.first_name && touched.first_name &&
+                            <div className="help-block">{errors.first_name}</div>
+                        }
+                    </FormControl>
+
+                    <FormControl margin="normal" required fullWidth>
+                        <InputLabel htmlFor="last_name" className={classes.inputLabel}>Last name</InputLabel>
+                        <Input id="last_name" name="last_name" className={classes.inputField} value={values.last_name} onChange={handleChange} />
+                        {errors.last_name && touched.last_name &&
+                        <div className="help-block">{errors.last_name}</div>
+                        }
+                    </FormControl>
+
+                    <FormControl margin="normal" required fullWidth>
+                        <InputLabel htmlFor="company_name" className={classes.inputLabel}>Company name</InputLabel>
+                        <Input id="company_name" name="company_name" className={classes.inputField} value={values.company_name} onChange={handleChange} />
+                        {errors.company_name && touched.company_name &&
+                        <div className="help-block">{errors.company_name}</div>
+                        }
+                    </FormControl>
+
+                    <FormControl margin="normal" required fullWidth>
+                        <InputLabel htmlFor="email" className={classes.inputLabel}>Email</InputLabel>
+                        <Input id="email" name="email" className={classes.inputField} value={values.email} onChange={handleChange} />
+                        {errors.email && touched.email &&
+                        <div className="help-block">{errors.email}</div>
+                        }
+                    </FormControl>
+
+                    <FormControl margin="normal" required fullWidth>
+                        <InputLabel htmlFor="email" className={classes.inputLabel}>Password</InputLabel>
+                        <Input id="password" type="password" className={classes.inputField} name="password" value={values.password} onChange={handleChange} />
+                        {errors.password && touched.password &&
+                        <div className="help-block">{errors.password}</div>
+                        }
+                    </FormControl>
+
+                    <FormControl margin="normal" required fullWidth>
+                        <InputLabel htmlFor="confirm" className={classes.inputLabel}>Confirm password</InputLabel>
+                        <Input id="confirm" type="password" className={classes.inputField} name="confirm" value={values.confirm} onChange={handleChange} />
+                        {errors.confirm && touched.confirm &&
+                        <div className="help-block">{errors.confirm}</div>
+                        }
+                    </FormControl>
+
+
+                    <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        className={classes.submit}
+                    >
                         Submit
-                    </button>
+                    </Button>
+
+                    <Typography variant="subtitle2" className={classes.customColor} gutterBottom style={{'paddingTop': '10px'}}>
+                        Already registered? <Link to="/">Login</Link>
+                    </Typography>
                 </Form>
             )}
         </Formik>;
 
 
         return (
-            <div className="col-md-6 col-md-offset-3">
-                <h2>Register</h2>
-                {form}
-            </div>
+            <main className={classes.main}>
+                <CssBaseline />
+                <Paper className={classes.paper}>
+                    <img width={125} src={logo} alt="logo"/>
+                    <Typography component="h1" variant="h5">
+                        Sign up
+                    </Typography>
+                    {
+                        form
+                    }
+                </Paper>
+            </main>
         );
     }
 }
@@ -137,5 +239,5 @@ function mapStateToProps(state) {
     };
 }
 
-const connectedRegisterPage = connect(mapStateToProps)(RegisterPage);
+const connectedRegisterPage = withStyles(styles)(connect(mapStateToProps)(RegisterPage));
 export { connectedRegisterPage as RegisterPage };

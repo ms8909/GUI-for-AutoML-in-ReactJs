@@ -18,6 +18,18 @@ import Chip from '@material-ui/core/Chip';
 import DoneIcon from '@material-ui/icons/Done';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Pusher from "pusher-js";
+import * as zoom from 'chartjs-plugin-zoom';
+
+var options={
+    pan:{
+        enabled:true,
+        mode:'x'
+    },
+    zoom:{
+        enabled:true,
+        mode:'x'
+    }
+}
 
 const styles = theme => ({
     root: {
@@ -73,6 +85,9 @@ const styles = theme => ({
         alignItems: 'center',
         paddingRight: 50
     },
+    status: {
+        padding: '12px'
+    },
     tablecontainer:{
         display: 'flex',
         flexDirection: 'column',
@@ -81,12 +96,11 @@ const styles = theme => ({
         '& > table': {
             border: '1px solid',
             padding: 0,
-            width: '75%',
             background: '#f5f5f5',
             '& > tr': {
                 padding: 0,
                 '& > th':{
-                    background: '#4caf50',
+                    background: '#A5C05B',
                     margin: 7,
                     color: "#FFF",
                     textAlign: "center",
@@ -96,7 +110,7 @@ const styles = theme => ({
                 '& > td': {
                     font: "500 13px roboto",
                     margin: 7,
-                    fontWeight: 'bold',
+                    fontWeight: '500',
                     color: '#000',
                     padding: 4
                 }
@@ -133,13 +147,13 @@ class GraphPage extends React.Component {
             console.log('progress csv here', data);
             if(data.message.step == 4){
                 if(context.props.groups.deployed.length > 0){
-                    let model_d = context.props.groups[0].model_d;
+                    let model_d = context.props.groups.deployed[0].model_d;
                     if(model_d.training.processed_file_d.parent == undefined){
-                        dispatch(projectActions.getTestingSets(model_d.training.processed_file))
+                        context.props.dispatch(projectActions.getTestingSets(model_d.training.processed_file))
                     }
                     else{
                         for(let i of model_d.training.processed_file_d.parent.dataset){
-                            dispatch(projectActions.getTestingSets(i))
+                            context.props.dispatch(projectActions.getTestingSets(i))
                         }
                     }
                 }
@@ -231,7 +245,7 @@ class GraphPage extends React.Component {
         const { groups, classes } = this.props;
 
         const statusSteps = [
-            {step: 0, text: 'Uploading testing data'},
+            {step: 0, text: 'Uploading data'},
             {step: 1, text: 'Reading raw data'},
             {step: 2, text: 'Saving data frame for testing'},
         ];
@@ -245,8 +259,8 @@ class GraphPage extends React.Component {
 
         const steps = this.state.current == 0 ? statusSteps : testingSteps;
 
-        const status = <Paper className={classes.paper}>
-            <Typography variant="h6" gutterBottom>Status</Typography>
+        const status = <Paper className={[classes.paper, classes.status]}>
+            {/*<Typography variant="h6" gutterBottom>Status</Typography>*/}
             <Grid container>
                 {steps.map((obj) => (
                     <Grid item sm={3} className={classes.statusItem}>
@@ -281,8 +295,8 @@ class GraphPage extends React.Component {
                     label: 'Prediction',
                     fill: false,
                     lineTension: 0.1,
-                    backgroundColor: 'rgba(255,99,132,0.2)',
-                    borderColor: 'rgba(255,99,132,1)',
+                    backgroundColor: 'rgba(165, 192, 91,0.8)',
+                    borderColor: 'rgba(165, 192, 91,1)',
                     borderCapStyle: 'butt',
                     borderDash: [],
                     borderDashOffset: 0.0,
@@ -291,8 +305,8 @@ class GraphPage extends React.Component {
                     pointBackgroundColor: '#fff',
                     pointBorderWidth: 1,
                     pointHoverRadius: 5,
-                    pointHoverBackgroundColor: 'rgba(75,192,192,1)',
-                    pointHoverBorderColor: 'rgba(220,220,220,1)',
+                    pointHoverBackgroundColor: 'rgba(165, 192, 91,1)',
+                    pointHoverBorderColor: 'rgba(165, 192, 91,1)',
                     pointHoverBorderWidth: 2,
                     pointRadius: 1,
                     pointHitRadius: 0.01,
@@ -323,15 +337,15 @@ class GraphPage extends React.Component {
                                 <br/>
                                 <Typography variant="h6" gutterBottom>Time variable</Typography>
                                 {   groups.deployed && groups.deployed.length > 0 &&
-                                <Typography variant="body2" gutterBottom>{groups.deployed[0].model_d.training.time_yariable_d.column_name}</Typography>
+                                <Typography variant="body2" gutterBottom>{groups.deployed[0].model_d.training.time_yariable ? groups.deployed[0].model_d.training.time_yariable_d.column_name: 'N/A'}</Typography>
                                 }
                                 <br/>
                                 <Button  onClick={(e)=> {this.props.history.push('/training/'+this.state.project_id)}} variant="contained" color="primary" className={classes.button}>
-                                    View model data
+                                    View models
                                 </Button>
                                 <br/>
                                 <Button onClick={(e)=> {this.props.history.push('/dashboard/'+this.state.project_id)}} variant="contained" color="primary" className={classes.button}>
-                                    View data schema
+                                    View data
                                 </Button>
                             </Paper>
                         </Grid>
@@ -342,8 +356,8 @@ class GraphPage extends React.Component {
                                         <Typography variant="h6" gutterBottom>Datasets</Typography>
                                     </Grid>
                                     <Grid xs={4} style={{textAlign: 'right'}}>
-                                        {  groups.testable==true && (this.state.progress.step==-1 || this.state.progress.step>=4) &&
-                                            <Button onClick={this.proceedTesting} size="small" color="primary">
+                                        {  groups.testable==true && (this.state.progress.step==-1 || this.state.progress.step>=3) &&
+                                            <Button onClick={this.proceedTesting} variant="outlined" color="primary">
                                                 Do testing
                                             </Button>
                                         }
@@ -357,6 +371,14 @@ class GraphPage extends React.Component {
                                             groups.deployed && groups.deployed.length &&  ((groups.deployed[0].model_d.training.processed_file_d.parent == null && row.dataset.id == groups.deployed[0].model_d.training.processed_file) ||
                                             (groups.deployed[0].model_d.training.processed_file_d.parent && groups.deployed[0].model_d.training.processed_file_d.parent.datasetindexOf(row.dataset.id) != -1)) &&
                                             <Grid item xs={4} alignItems='center' className={classes.tablecontainer} key={index}>
+                                                { (this.state.progress.step==-1 || this.state.progress.step>=4) &&
+                                                    <Button size="small" onClick={(e) => {
+                                                        $('#fileinput').trigger('click');
+                                                        this.setState({data_id: row.dataset.id})
+                                                    }} color="primary" className={classes.button}>
+                                                        Upload test data
+                                                    </Button>
+                                                }
                                                 <table className={classes.table}>
                                                     <tr>
                                                         <th>{row.dataset.name.split('.')[0]}</th>
@@ -369,15 +391,6 @@ class GraphPage extends React.Component {
                                                         ))
                                                     }
                                                 </table>
-                                                <br/>
-                                                { (this.state.progress.step==-1 || this.state.progress.step>=4) &&
-                                                    <Button size="small" onClick={(e) => {
-                                                        $('#fileinput').trigger('click');
-                                                        this.setState({data_id: row.dataset.id})
-                                                    }} color="primary" className={classes.button}>
-                                                        Upload testing set
-                                                    </Button>
-                                                }
                                             </Grid>
                                         ))
                                     }
@@ -391,9 +404,18 @@ class GraphPage extends React.Component {
                             </Paper>
                             <br/>
                             <Paper className={classes.paper}>
-                                <Typography variant="h6" gutterBottom>Prediction</Typography>
+                                <Grid container>
+                                    <Grid xs={8}>
+                                        <Typography variant="h6" gutterBottom>Prediction</Typography>
+                                    </Grid>
+                                    <Grid xs={4} style={{textAlign: 'right'}}>
+                                        <Button onClick={()=>{console.log('download csv')}} variant="outlined" color="primary">
+                                            Download predictions
+                                        </Button>
+                                    </Grid>
+                                </Grid>
                                 {   prediction_data ?
-                                    <Line data={prediction_data}/>:
+                                    <Line data={prediction_data} options={options}/>:
                                     <Typography variant="body2" gutterBottom>no graph generated</Typography>
                                 }
                             </Paper>

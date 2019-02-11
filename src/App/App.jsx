@@ -1,3 +1,4 @@
+import ReactGA from 'react-ga';
 import React from 'react';
 import { Router, Route } from 'react-router-dom';
 import { connect } from 'react-redux';
@@ -23,18 +24,38 @@ import Snackbar from '@material-ui/core/Snackbar';
 const theme = createMuiTheme({
     typography: {
         useNextVariants: true,
+        fontSize: 12,
     },
     palette: {
-        primary: green,
-        secondary: indigo,
+        primary: {
+            main: '#A5C05B',
+            contrastText: '#fff',
+        },
+        secondary: {
+            main: '#A01D26',
+            contrastText: '#fff',
+        },
+        background: {
+            default: '#303030',
+            paper: "#FFFFFF"
+        },
+        // text:{
+        //     primary: "#FFFFFF",
+        //     secondary: "#FFFFFF",
+        //     disabled: "#FFFFFF",
+        //     hint: "#FFFFFF",
+        // }
     },
 });
+
+
 /*
 type:'dark'
 */
 class App extends React.Component {
     constructor(props) {
         super(props);
+        ReactGA.initialize('UA-74441880-6');
 
         this.state = {
             alert: false,

@@ -59,7 +59,9 @@ export const projectActions = {
     startTesting,
     getTestingGraph,
     getTaskProgress,
-
+    filterTrainingModels,
+    interruptTraining,
+    updateLocation
 };
 
 
@@ -248,7 +250,7 @@ function createTraining(detail, project_id) {
             .then(
                 detail => {
                     if(detail.success){
-                        dispatch(alertActions.success('Training started successfully.'));
+                        // dispatch(alertActions.success('Training started successfully.'));
                         history.push('/training/'+project_id);
                     }
                     dispatch(loaderActions.requesting(false));
@@ -277,6 +279,21 @@ function updateMeta(id, request) {
                 error => {
                     dispatch(loaderActions.requesting(false));
                     dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+}
+
+
+function updateLocation(nodes) {
+    return dispatch => {
+        userService.updateLoc(nodes)
+            .then(
+                resp => {
+                    console.log('update loc', resp);
+                },
+                error => {
+                    console.log('error loc', error);
                 }
             );
     };
@@ -350,7 +367,9 @@ function deployModel(detail, project_id) {
                 resp => {
                     console.log('in resp here', resp);
                     if(resp.success){
-                        dispatch(alertActions.success('Model deployed successfully.'));
+                        setTimeout(()=>{
+                            dispatch(alertActions.success('Model deployed successfully.'));
+                        },1000);
                         history.push('/graph/'+project_id);
                     }
                     dispatch(loaderActions.requesting(false));
@@ -626,6 +645,27 @@ function geTrainingModels(id) {
     function success(models) { return { type: projectConstants.GET_TRAINING_MODELS_SUCCESS, models } }
 }
 
+
+function filterTrainingModels(id, metric) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.filterTrainingModels(id, metric)
+            .then(
+                models => {
+                    if(models.success)
+                        dispatch(success(models.data))
+                    dispatch(loaderActions.requesting(false));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+    function success(models) { return { type: projectConstants.GET_TRAINING_MODELS_SUCCESS, models } }
+}
+
 function getAccuracy(id, project_id) {
     return dispatch => {
         dispatch(loaderActions.requesting(true, true));
@@ -780,7 +820,7 @@ function addDataset(request, id) {
                     // dispatch(getProject(id));
                 },
                 error => {
-                    var ee = new EventEmitter()
+                    var ee = new EventEmitter();
                     ee.emit('error', 'failed!');
                     dispatch(loaderActions.requesting(false));
                     dispatch(alertActions.error(error.toString()));
@@ -818,6 +858,25 @@ function addTraining(request, id) {
     };
 }
 
+function interruptTraining(id) {
+    return dispatch => {
+        dispatch(loaderActions.requesting(true, true));
+
+        userService.interruptTraining(id)
+            .then(
+                project => {
+                    if(project.success)
+                        dispatch(alertActions.success('Interruption in progress.'));
+                    dispatch(getProject(id));
+                    dispatch(loaderActions.requesting(false));
+                },
+                error => {
+                    dispatch(loaderActions.requesting(false));
+                    dispatch(alertActions.error(error.toString()));
+                }
+            );
+    };
+}
 
 function getUsers() {
     return dispatch => {

@@ -1,3 +1,4 @@
+import ReactGA from 'react-ga';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
@@ -18,7 +19,10 @@ const styles = theme => ({
     appBar: {
         position: 'relative',
         backgroundColor: '#000',
-        color: '#fff'
+        color: '#fff',
+        '& > div':{
+            minHeight: '48px'
+        }
     },
     root: {
         flexGrow: 1,
@@ -42,7 +46,13 @@ const styles = theme => ({
         top: '0'
     },
     tabContainer: {
-        marginLeft: 0,
+        marginLeft: '150px',
+        [theme.breakpoints.down('sm')]: {
+            // display: 'none'
+            marginLeft: '0',
+        }
+    },
+    logoContainer: {
         [theme.breakpoints.down('sm')]: {
             display: 'none'
         }
@@ -53,6 +63,9 @@ const styles = theme => ({
         minWidth: 'auto',
         color: '#FFF',
     },
+    btn_light: {
+        color: '#FFF'
+    }
 });
 
 const defaultProps = {};
@@ -72,6 +85,13 @@ class Header extends Component {
     handleChange(event, value){
         this.setState({ value });
     };
+
+    componentDidUpdate(prevProps) {
+        if (this.props.location !== prevProps.location) {
+            console.log('route updated here', this.props.location.pathname);
+            ReactGA.pageview(this.props.location.pathname);
+        }
+    }
 
     componentDidMount() {
         window.scrollTo(0, 0);
@@ -95,9 +115,9 @@ class Header extends Component {
     let button;
 
     if (isLoggedIn) {
-        button = <Link to='/'><Button color="inherit">Logout</Button></Link>;
+        button = <Link to='/'><Button className={classes.btn_light}>Logout</Button></Link>;
     } else {
-        button = <Link to='/'><Button color="inherit">Login</Button></Link>;
+        button = <Link to='/'><Button className={classes.btn_light}>Login</Button></Link>;
     }
 
     const menu = [
@@ -116,31 +136,39 @@ class Header extends Component {
 
     return (
         <div className={classes.root}>
+            {isLoggedIn &&
             <AppBar position="static" className={classes.appBar}>
                 <Toolbar>
-                <Grid container spacing={24} alignItems="baseline">
-                <Grid item xs={12} alignItems='baseline' className={classes.flex}>
-                    <Typography variant="h6" color="inherit">
-                        <Link to='/' className={classes.link}>
-                            <img width={250} src={logo} alt="logo"/>
-                        </Link>
-                    </Typography>
-                <div className={classes.tabContainer}>
-                    <Tabs
-                        value={this.current()}
-                        indicatorColor="primary"
-                        textColor="primary"
-                        onChange={this.handleChange}>
-                        {menu.map((item, index) => (
-                            <Tab key={index} component={Link} to={{pathname: item.pathname, search: this.props.location.search}} classes={{root: classes.tabItem}} label={item.label} />
-                        ))}
-                    </Tabs>
-                </div>
-                    {button}
-                </Grid>
-                </Grid>
+                    <Grid container spacing={24} alignItems="baseline">
+                        <Grid item xs={12} alignItems='baseline' className={classes.flex}>
+                            <div>
+                                <Typography variant="h6" color="inherit" className={classes.logoContainer}>
+                                    <Link to='/dashboard' className={classes.link}>
+                                        <img width={100} src={logo} alt="logo"/>
+                                    </Link>
+                                </Typography>
+                                {isLoggedIn &&
+                                <div className={classes.tabContainer}>
+                                    <Tabs
+                                        value={this.current()}
+                                        indicatorColor="primary"
+                                        textColor="primary"
+                                        onChange={this.handleChange}>
+                                        {menu.map((item, index) => (
+                                            <Tab key={index} component={Link}
+                                                 to={{pathname: item.pathname, search: this.props.location.search}}
+                                                 classes={{root: classes.tabItem}} label={item.label}/>
+                                        ))}
+                                    </Tabs>
+                                </div>
+                                }
+                            </div>
+                            {button}
+                        </Grid>
+                    </Grid>
                 </Toolbar>
             </AppBar>
+            }
         </div>
     );
   }

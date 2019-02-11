@@ -111,19 +111,21 @@ const styles = theme => ({
         fontFamily: "Roboto"
     },
     mapper:{
-        height: 300
+        height: 400,
+        width: '100%'
     },
     delete: {
         color: 'red',
-        marginLeft: '-8px'
+        marginLeft: '8px'
     },
     upload: {
         fontSize: '3.5rem',
-        color: '#4caf50',
+        color: '#A5C05B',
     },
     tabContainer:{
         marginTop: 30,
-        overflowX: 'scroll'
+        overflowX: 'scroll',
+        paddingBottom: 30
     },
     bold: {
         fontWeight: '500'
@@ -146,6 +148,40 @@ const styles = theme => ({
                 '& > div':{
                     transform: 'rotate(-40deg)',
                 }
+            }
+        }
+    },
+    tabOuterContainer:{
+        '& > div':{
+            '& > div':{
+                '& > div':{
+                    overflowX: 'scroll'
+                }
+            }
+        }
+    },
+    status: {
+        padding: '12px'
+    },
+    uploadContainer: {
+        display: 'contents',
+        '& > span':{
+            marginLeft: '12px'
+        }
+    },
+    uploadPaper: {
+        padding: '0 12px',
+        height: '100%'
+    },
+    relationshipContainer:{
+        boxShadow: '0px 1px 5px 0px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 3px 1px -2px rgba(0,0,0,0.12)',
+        borderRadius: '4px',
+        margin: 0
+    },
+    distributionContainer: {
+        '& > div':{
+            '& > div':{
+                maxWidth: '60vw'
             }
         }
     }
@@ -341,6 +377,18 @@ class DashboardPage extends React.Component {
     }
 
     onLinkChange(value){
+        console.log('on link change value here', value.nodeDataArray);
+        let nodes_location = [];
+        for (let node of value.nodeDataArray){
+            nodes_location.push(
+                {
+                    dataset_id: node.id,
+                    loc: node.loc
+                }
+            )
+        }
+        this.props.dispatch(projectActions.updateLocation(nodes_location));
+        console.log('node locations', nodes_location);
         let links = value.linkDataArray;
         let { groups } = this.props;
         let nodes = [];
@@ -393,13 +441,17 @@ class DashboardPage extends React.Component {
                         this.props.dispatch(alertActions.error('Error in task.'));
                     }
                     if(nextGroups.task.result.event == 'read_csv'){
+                        let progress = this.state.progress;
+                        progress.current = 0;
                         this.setState({
-                            progress: {current: 0}
+                            progress: progress
                         })
                     }
                     else{
+                        let progress = this.state.progress;
+                        progress.current = 1;
                         this.setState({
-                            progress: {current: 1}
+                            progress: progress
                         })
                     }
                 }
@@ -420,7 +472,7 @@ class DashboardPage extends React.Component {
                     text: set.name,
                     isLeaf: true
                 })
-                this.props.dispatch(projectActions.getDatasetMeta({id: set.id, name: set.name, status: set.status, rows: set.rows, heat: set.grid_map}))
+                this.props.dispatch(projectActions.getDatasetMeta({id: set.id, name: set.name, status: set.status, rows: set.rows, heat: set.grid_map, loc: set.loc, columns: set.columns}))
                 this.props.dispatch(projectActions.getDatasetData(set.id))
             }
         }
@@ -507,16 +559,16 @@ class DashboardPage extends React.Component {
             {step: 3, text: 'Displaying data'},
         ];
 
-        const distribution_data = this.state.selected_meta && {
+        const distribution_data = this.state.selected_meta && this.state.selected_meta.distribution_data && this.state.selected_meta.distribution_data.graph_type == 'bar_chart' &&{
             labels: this.state.selected_meta.distribution_data.x,
             datasets: [
                 {
                     label: 'Distribution data',
-                    backgroundColor: 'rgba(255,99,132,0.2)',
-                    borderColor: 'rgba(255,99,132,1)',
+                    backgroundColor: 'rgba(165, 192, 91,0.8)',
+                    borderColor: 'rgba(165, 192, 91 ,1)',
                     borderWidth: 1,
-                    hoverBackgroundColor: 'rgba(255,99,132,0.4)',
-                    hoverBorderColor: 'rgba(255,99,132,1)',
+                    hoverBackgroundColor: 'rgba(165, 192, 91 ,0.1)',
+                    hoverBorderColor: 'rgba(165, 192, 91 ,1)',
                     data: this.state.selected_meta.distribution_data.y
                 }
             ]
@@ -524,8 +576,8 @@ class DashboardPage extends React.Component {
 
         const steps = this.state.current == 0 ? statusSteps : mergeSteps;
 
-        const status = <Paper className={classes.paper}>
-            <Typography variant="h6" gutterBottom>Status</Typography>
+        const status = <Paper className={[classes.paper, classes.status]}>
+            {/*<Typography variant="h6" gutterBottom>Status</Typography>*/}
             <Grid container>
                 {steps.map((obj) => (
                     <Grid item sm={3} className={classes.statusItem}>
@@ -707,7 +759,7 @@ class DashboardPage extends React.Component {
                                 {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Count: </span>{parseFloat(row.count).toFixed(2)},&nbsp;</Typography>*/}
                                 {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Missing: </span>{parseFloat(row.missing).toFixed(2)}&nbsp;</Typography>*/}
                             {/*</Grid>*/}
-                            <Button onClick={(e) => {this.setState({graph_modal: true, selected_meta: row})}} size="small" color="secondary">
+                            <Button onClick={(e) => {this.setState({graph_modal: true, selected_meta: row})}} size="small" color="primary">
                                 View distribution
                             </Button>
                         </TableCell>
@@ -721,74 +773,8 @@ class DashboardPage extends React.Component {
             <div className={classes.root}>
                 <Grid container justify="center">
                     <Grid spacing={24} alignItems="start" justify="center" container className={classes.grid}>
-                        <Grid item xs={12}>
-                            {status}
-                        </Grid>
-
                         <Grid item xs={3}>
-                            {/*
-                            <Paper className={classes.paper}>
-                                <Typography variant="h6" gutterBottom>Datasets</Typography>
-                                <TreeView className={classes.treeView} items={ this.state.datasets } onSelectItem={this.onSelectDataset}/>
-                            </Paper>
-                            */}
-                            <ExpansionPanel style={{margin: 0}}>
-                                <ExpansionPanelSummary
-                                    expandIcon={<ExpandMoreIcon />}
-                                    onClick={event => this.setState({selected: -1})}
-                                >
-                                    <Typography variant="h6">Datasets</Typography>
-                                </ExpansionPanelSummary>
-                                <ExpansionPanelDetails className={classes.expansionDetail}>
-                                    <List component="div" disablePadding className={classes.expansionList}>
-                                        {groups.project && groups.project.datasets.map((obj) =>
-                                            <ListItem
-                                                key={obj.id}
-                                                button
-                                                className={classes.nested}
-                                                selected={this.state.selected == obj.id}
-                                                onClick={event => this.setState({selected: obj.id})}
-                                            >
-                                                <ListItemText primary={obj.name}/>
-                                            </ListItem>
-                                        )}
-                                    </List>
-                                </ExpansionPanelDetails>
-                            </ExpansionPanel>
-
-                            {
-                                this.state.selected!=-1 &&
-                                groups.project.datasets.map((obj) =>
-                                    this.state.selected == obj.id &&
-                                    <React.Fragment key={obj.id}>
-                                        <br/>
-                                        <Paper className={classes.paper}>
-                                            <Typography variant="subtitle2" gutterBottom>Dataset name</Typography>
-                                            <Typography variant="body2" gutterBottom>{obj.name}</Typography>
-                                            <br/>
-                                            <Grid container>
-                                                <Grid item sm={6}>
-                                                    <Typography variant="subtitle2" gutterBottom>No of rows</Typography>
-                                                    <Typography variant="body2" gutterBottom>{obj.rows}</Typography>
-                                                </Grid>
-                                                <Grid item sm={6}>
-                                                    <Typography variant="subtitle2" gutterBottom>No of columns</Typography>
-                                                    <Typography variant="body2" gutterBottom>{obj.columns}</Typography>
-                                                </Grid>
-                                            </Grid>
-                                            <br/>
-                                            { (this.state.progress.step == -1 || this.state.progress.step == 4) &&
-                                                <Button onClick={(e) => {
-                                                    this.deleteDataset(e, obj.id)}} size="small" className={classes.delete}>
-                                                    Delete
-                                                </Button>
-                                            }
-                                         </Paper>
-                                    </React.Fragment>
-                                )
-                            }
-                            <br/>
-                            <Paper className={classes.paper}>
+                            <Paper className={[classes.paper, classes.uploadPaper]}>
                                 <Dropzone onDrop={this.onDrop}>
                                     {({getRootProps, getInputProps, isDragActive}) => {
                                         return (
@@ -801,10 +787,9 @@ class DashboardPage extends React.Component {
                                                     isDragActive ?
 
                                                         <Typography variant="subtitle2" gutterBottom>Drop datasets here...</Typography> :
-                                                        <Typography variant="subtitle2" gutterBottom>
+                                                        <Typography variant="subtitle2" gutterBottom className={classes.uploadContainer}>
                                                             <CloudUploadIcon className={classes.upload}/>
-                                                            <br/>
-                                                            Try dropping some files here, or click to select files to upload.
+                                                            <span>Drop dataset here, or click to select dataset to upload.</span>
                                                         </Typography>
                                                 }
                                             </div>
@@ -812,36 +797,160 @@ class DashboardPage extends React.Component {
                                     }}
                                 </Dropzone>
                             </Paper>
-
                         </Grid>
 
                         <Grid item xs={9}>
-                            <Paper className={classes.paper}>
-                                <Grid container>
-                                    <Grid item sm={6}>
-                                        <Typography variant="h6" gutterBottom>Relationships</Typography>
-                                    </Grid>
-                                {
-                                    this.state.dirty == true && (this.state.progress.step == -1 || this.state.progress.step == 4) &&
-                                    <Grid item sm={6} style={{textAlign: 'right'}}>
-                                        <Button onClick={this.mergeLinks} size="small" color="primary">
-                                            Merge datasets
-                                        </Button>
-                                    </Grid>
-                                }
-                                </Grid>
+                            {status}
+                        </Grid>
+                    </Grid>
+                    <Grid spacing={24} alignItems="start" justify="center" container className={classes.grid}>
 
-                                {groups.tables && groups.linkData &&  groups.tables.length == groups.project.datasets.length &&
+                        {/*<Grid item xs={3}>*/}
+                            {/*/!**/}
+                            {/*<Paper className={classes.paper}>*/}
+                                {/*<Typography variant="h6" gutterBottom>Datasets</Typography>*/}
+                                {/*<TreeView className={classes.treeView} items={ this.state.datasets } onSelectItem={this.onSelectDataset}/>*/}
+                            {/*</Paper>*/}
+                            {/**!/*/}
+                            {/*<ExpansionPanel style={{margin: 0}}>*/}
+                                {/*<ExpansionPanelSummary*/}
+                                    {/*expandIcon={<ExpandMoreIcon />}*/}
+                                    {/*onClick={event => this.setState({selected: -1})}*/}
+                                {/*>*/}
+                                    {/*<Typography variant="h6">Datasets</Typography>*/}
+                                {/*</ExpansionPanelSummary>*/}
+                                {/*<ExpansionPanelDetails className={classes.expansionDetail}>*/}
+                                    {/*<List component="div" disablePadding className={classes.expansionList}>*/}
+                                        {/*{groups.project && groups.project.datasets.map((obj) =>*/}
+                                            {/*<ListItem*/}
+                                                {/*key={obj.id}*/}
+                                                {/*button*/}
+                                                {/*className={classes.nested}*/}
+                                                {/*selected={this.state.selected == obj.id}*/}
+                                                {/*onClick={event => this.setState({selected: obj.id})}*/}
+                                            {/*>*/}
+                                                {/*<ListItemText primary={obj.name}/>*/}
+                                            {/*</ListItem>*/}
+                                        {/*)}*/}
+                                    {/*</List>*/}
+                                {/*</ExpansionPanelDetails>*/}
+                            {/*</ExpansionPanel>*/}
+
+                            {/*{*/}
+                                {/*this.state.selected!=-1 &&*/}
+                                {/*groups.project.datasets.map((obj) =>*/}
+                                    {/*this.state.selected == obj.id &&*/}
+                                    {/*<React.Fragment key={obj.id}>*/}
+                                        {/*<br/>*/}
+                                        {/*<Paper className={classes.paper}>*/}
+                                            {/*<Typography variant="subtitle2" gutterBottom>Dataset name</Typography>*/}
+                                            {/*<Typography variant="body2" gutterBottom>{obj.name}</Typography>*/}
+                                            {/*<br/>*/}
+                                            {/*<Grid container>*/}
+                                                {/*<Grid item sm={6}>*/}
+                                                    {/*<Typography variant="subtitle2" gutterBottom>No of rows</Typography>*/}
+                                                    {/*<Typography variant="body2" gutterBottom>{obj.rows}</Typography>*/}
+                                                {/*</Grid>*/}
+                                                {/*<Grid item sm={6}>*/}
+                                                    {/*<Typography variant="subtitle2" gutterBottom>No of columns</Typography>*/}
+                                                    {/*<Typography variant="body2" gutterBottom>{obj.columns}</Typography>*/}
+                                                {/*</Grid>*/}
+                                            {/*</Grid>*/}
+                                            {/*<br/>*/}
+                                            {/*{ (this.state.progress.step == -1 || this.state.progress.step == 4) &&*/}
+                                                {/*<Button onClick={(e) => {*/}
+                                                    {/*this.deleteDataset(e, obj.id)}} size="small" className={classes.delete}>*/}
+                                                    {/*Delete*/}
+                                                {/*</Button>*/}
+                                            {/*}*/}
+                                         {/*</Paper>*/}
+                                    {/*</React.Fragment>*/}
+                                {/*)*/}
+                            {/*}*/}
+                            {/*<br/>*/}
+                            {/*<Paper className={classes.paper}>*/}
+                                {/*<Dropzone onDrop={this.onDrop}>*/}
+                                    {/*{({getRootProps, getInputProps, isDragActive}) => {*/}
+                                        {/*return (*/}
+                                            {/*<div*/}
+                                                {/*{...getRootProps()}*/}
+                                                {/*className={classNames('dropzone', {'dropzone--isActive': isDragActive})}*/}
+                                                {/*style={{display: 'flex', textAlign: 'center', alignItems: 'center', padding: '1rem'}}>*/}
+                                                {/*<input {...getInputProps()} />*/}
+                                                {/*{*/}
+                                                    {/*isDragActive ?*/}
+
+                                                        {/*<Typography variant="subtitle2" gutterBottom>Drop datasets here...</Typography> :*/}
+                                                        {/*<Typography variant="subtitle2" gutterBottom>*/}
+                                                            {/*<CloudUploadIcon className={classes.upload}/>*/}
+                                                            {/*<br/>*/}
+                                                            {/*Try dropping some files here, or click to select files to upload.*/}
+                                                        {/*</Typography>*/}
+                                                {/*}*/}
+                                            {/*</div>*/}
+                                        {/*)*/}
+                                    {/*}}*/}
+                                {/*</Dropzone>*/}
+                            {/*</Paper>*/}
+
+                        {/*</Grid>*/}
+
+                        <Grid item xs={12}>
+
+
+                            <ExpansionPanel className={classes.relationshipContainer}>
+                                <ExpansionPanelSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                >
+                                    <Typography variant="h6">Relationships</Typography>
+                                </ExpansionPanelSummary>
+                                <ExpansionPanelDetails className={classes.expansionDetail}>
+                                    <Grid container>
+                                        {this.state.dirty == true && (this.state.progress.step == -1 || this.state.progress.step == 4) && groups.project && groups.project.datasets.length > 1 &&
+                                            <Grid xs={12}>
+                                                <Button onClick={this.mergeLinks} variant="outlined" color="primary"
+                                                        style={{margin: '0 24px', textAlign:'right'}}>
+                                                    Merge datasets
+                                                </Button>
+                                            </Grid>
+                                        }
+                                    {groups.tables && groups.linkData &&  groups.tables.length == groups.project.datasets.length &&
                                     <div className={classes.mapper}>
                                         <RecordMapper nodeData={groups.tables} linkData={groups.linkData} onChange={this.onLinkChange}/>
                                     </div>
-                                }
-                            </Paper>
+                                    }
+                                    </Grid>
+                                </ExpansionPanelDetails>
+                            </ExpansionPanel>
+
+
+                            {/*<Paper className={classes.paper}>*/}
+                                {/*<Grid container>*/}
+                                    {/*<Grid item sm={6}>*/}
+                                        {/*<Typography variant="h6" gutterBottom>Relationships</Typography>*/}
+                                    {/*</Grid>*/}
+                                {/*{*/}
+                                    {/*this.state.dirty == true && (this.state.progress.step == -1 || this.state.progress.step == 4) && groups.project && groups.project.datasets.length > 1 &&*/}
+                                    {/*<Grid item sm={6} style={{textAlign: 'right'}}>*/}
+                                        {/*<Button onClick={this.mergeLinks} size="small" color="primary">*/}
+                                            {/*Merge datasets*/}
+                                        {/*</Button>*/}
+                                    {/*</Grid>*/}
+                                {/*}*/}
+                                {/*</Grid>*/}
+
+                                {/*/!*{groups.tables && groups.linkData &&  groups.tables.length == groups.project.datasets.length &&*!/*/}
+                                    {/*/!*<div className={classes.mapper}>*!/*/}
+                                        {/*/!*<RecordMapper nodeData={groups.tables} linkData={groups.linkData} onChange={this.onLinkChange}/>*!/*/}
+                                    {/*/!*</div>*!/*/}
+                                {/*/!*}*!/*/}
+                            {/*</Paper>*/}
 
                             <br/>
                             <div>
                                 <AppBar position="static" color="default">
                                     <Tabs
+                                        className={classes.tabOuterContainer}
                                         value={this.state.dataset}
                                         onChange={(e, value)=>{this.setState({dataset: value, tab: 0}); this.handleAllChecked(false)}}
                                         indicatorColor="primary"
@@ -857,11 +966,10 @@ class DashboardPage extends React.Component {
                                         }
                                     </Tabs>
                                 </AppBar>
-                                <Paper className={classes.paper}>
+                                <Paper className={classes.paper} style={{borderRadius: 0}}>
                                 <Grid container>
                                     <Grid xs={8}>
                                         <Tabs
-                                            value={this.state.tab}
                                             value={this.state.tab}
                                             onChange={(e, value)=>{this.setTab(value)}}
                                             indicatorColor="primary"
@@ -870,12 +978,13 @@ class DashboardPage extends React.Component {
                                             <Tab label="View metadata" />
                                             <Tab label="View data" />
                                             <Tab label="View graph" />
+                                            <Tab label="Dataset info" />
                                         </Tabs>
                                     </Grid>
-                                    { (this.state.progress.step == -1 || this.state.progress.step == 4) &&
+                                    { (this.state.progress.step == -1 || this.state.progress.step == 4) && groups.project && groups.project.datasets.length > 0 &&
                                         <Grid xs={4} style={{textAlign: 'right'}}>
-                                            <Button onClick={this.proceedTraining} size="small" color="primary">
-                                                Proceed to training
+                                            <Button onClick={this.proceedTraining} variant="outlined" color="secondary">
+                                                Build models
                                             </Button>
                                         </Grid>
                                     }
@@ -892,19 +1001,6 @@ class DashboardPage extends React.Component {
                                 <div className={classes.tabContainer}>
                                     {groups.dataset_data &&
                                     <div>
-                                        <ReactPaginate
-                                            previousLabel={'previous'}
-                                            nextLabel={'next'}
-                                            breakLabel={'...'}
-                                            breakClassName={'break-me'}
-                                            pageCount={groups.metas[this.state.dataset].dataset.rows / 10}
-                                            marginPagesDisplayed={2}
-                                            pageRangeDisplayed={5}
-                                            onPageChange={(page)=>{this.getDataByPage(page)}}
-                                            containerClassName={'pagination'}
-                                            subContainerClassName={'pages pagination'}
-                                            activeClassName={'active'}
-                                        />
                                         <Table>
                                             <TableHead>
                                                 <TableRow>
@@ -923,6 +1019,19 @@ class DashboardPage extends React.Component {
                                                 ))}
                                             </TableBody>
                                         </Table>
+                                        <ReactPaginate
+                                            previousLabel={'previous'}
+                                            nextLabel={'next'}
+                                            breakLabel={'...'}
+                                            breakClassName={'break-me'}
+                                            pageCount={groups.metas[this.state.dataset].dataset.rows / 10}
+                                            marginPagesDisplayed={2}
+                                            pageRangeDisplayed={5}
+                                            onPageChange={(page)=>{this.getDataByPage(page)}}
+                                            containerClassName={'pagination'}
+                                            subContainerClassName={'pages pagination'}
+                                            activeClassName={'active'}
+                                        />
                                     </div>
 
                                     }
@@ -930,43 +1039,75 @@ class DashboardPage extends React.Component {
                                 }
 
                                 {this.state.tab === 2 &&
-                                <div className={classes.tabContainer}>
+                                <div className={classes.tabContainer} style={{padding: '0 8px 30px 8px'}}>
                                     <Typography variant="h6" gutterBottom>Pearson corelation</Typography>
-                                    <div className={classes.heatMap}>
-                                        <HeatMap
-                                            xLabels={groups.metas[this.state.dataset].dataset.heat.pearson.x}
-                                            yLabels={groups.metas[this.state.dataset].dataset.heat.pearson.y}
-                                            data={groups.metas[this.state.dataset].dataset.heat.pearson.array}
-                                            xLabelWidth={20}
-                                            yLabelWidth={200}
-                                            yLabelTextAlign='left'
-                                            cellStyle={(background, value, min, max, data, x, y) => ({
-                                                background: `rgb(66, 86, 244, ${1 - (max - value) / (max - min)})`,
-                                                fontSize: "11px",
-                                            })}
-                                            cellRender={value => value && `${parseFloat(value).toFixed(2)}`}
-                                        />
-                                    </div>
+                                    {   groups.metas[this.state.dataset].dataset.heat.pearson.x ?
+                                        <div className={classes.heatMap}>
+                                            <HeatMap
+                                                xLabels={groups.metas[this.state.dataset].dataset.heat.pearson.x}
+                                                yLabels={groups.metas[this.state.dataset].dataset.heat.pearson.y}
+                                                data={groups.metas[this.state.dataset].dataset.heat.pearson.array}
+                                                xLabelWidth={20}
+                                                yLabelWidth={200}
+                                                yLabelTextAlign='left'
+                                                cellStyle={(background, value, min, max, data, x, y) => ({
+                                                    background: `rgb(66, 86, 244, ${1 - (max - value) / (max - min)})`,
+                                                    fontSize: "11px",
+                                                })}
+                                                cellRender={value => value && `${parseFloat(value).toFixed(2)}`}
+                                            />
+                                        </div>:
+                                            <Typography variant="body2" gutterBottom>no graph generated</Typography>
+                                    }
                                     <br/>
                                     <br/>
                                     <Typography variant="h6" gutterBottom>Spearman corelation</Typography>
-                                    <div className={classes.heatMap}>
-                                        <HeatMap
-                                            xLabels={groups.metas[this.state.dataset].dataset.heat.spearman.x}
-                                            yLabels={groups.metas[this.state.dataset].dataset.heat.spearman.y}
-                                            data={groups.metas[this.state.dataset].dataset.heat.spearman.array}
-                                            xLabelWidth={20}
-                                            yLabelWidth={200}
-                                            yLabelTextAlign='left'
-                                            cellStyle={(background, value, min, max, data, x, y) => ({
-                                                background: `rgb(66, 86, 244, ${1 - (max - value) / (max - min)})`,
-                                                fontSize: "11px",
-                                            })}
-                                            cellRender={value => value && `${parseFloat(value).toFixed(2)}`}
-                                        />
-                                    </div>
+                                    {  groups.metas[this.state.dataset].dataset.heat.spearman.x ?
+                                        <div className={classes.heatMap}>
+                                            <HeatMap
+                                                xLabels={groups.metas[this.state.dataset].dataset.heat.spearman.x}
+                                                yLabels={groups.metas[this.state.dataset].dataset.heat.spearman.y}
+                                                data={groups.metas[this.state.dataset].dataset.heat.spearman.array}
+                                                xLabelWidth={20}
+                                                yLabelWidth={200}
+                                                yLabelTextAlign='left'
+                                                cellStyle={(background, value, min, max, data, x, y) => ({
+                                                    background: `rgb(66, 86, 244, ${1 - (max - value) / (max - min)})`,
+                                                    fontSize: "11px",
+                                                })}
+                                                cellRender={value => value && `${parseFloat(value).toFixed(2)}`}
+                                            />
+                                        </div>:
+                                        <Typography variant="body2" gutterBottom>no graph generated</Typography>
+                                    }
 
                                 </div>
+                                }
+                                {this.state.tab === 3 &&
+                                    <div className={classes.tabContainer}>
+                                        <div style={{padding: '0 8px'}}>
+                                            <Typography variant="h6" gutterBottom>Dataset name</Typography>
+                                            <Typography variant="body2" gutterBottom>{groups.metas[this.state.dataset].dataset.name}</Typography>
+                                            <br/>
+                                            <Grid container>
+                                                <Grid item sm={6}>
+                                                    <Typography variant="h6" gutterBottom>No of rows</Typography>
+                                                    <Typography variant="body2" gutterBottom>{groups.metas[this.state.dataset].dataset.rows}</Typography>
+                                                </Grid>
+                                                <Grid item sm={6}>
+                                                    <Typography variant="h6" gutterBottom>No of columns</Typography>
+                                                    <Typography variant="body2" gutterBottom>{groups.metas[this.state.dataset].dataset.columns}</Typography>
+                                                </Grid>
+                                            </Grid>
+                                            <br/>
+                                        </div>
+                                        { (this.state.progress.step == -1 || this.state.progress.step == 4) &&
+                                            <Button onClick={(e) => {
+                                            this.deleteDataset(e, groups.metas[this.state.dataset].dataset.id)}} variant="outlined" className={classes.delete}>
+                                                Delete
+                                            </Button>
+                                        }
+                                    </div>
                                 }
 
                             </Paper>
@@ -981,6 +1122,7 @@ class DashboardPage extends React.Component {
                     open={this.state.graph_modal}
                     onClose={()=>{this.setState({graph_modal: false, selected_meta: undefined})}}
                     aria-labelledby="form-dialog-title"
+                    className={classes.distributionContainer}
                 >
                     <DialogTitle id="form-dialog-title">Distribution data</DialogTitle>
                     {this.state.selected_meta &&
@@ -990,42 +1132,42 @@ class DashboardPage extends React.Component {
                             <Typography variant="body2" gutterBottom>{this.state.selected_meta.column_name}</Typography>
                             <br/>
 
-                            <Grid container style={{width: '40vw'}}>
-                                <Grid item xs={5}>
+                            <Grid container style={{width: '45vw'}}>
+                                <Grid item xs={4}>
                                     <Typography variant="subtitle2" gutterBottom>Mean</Typography>
                                     <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.mean).toFixed(2)}</Typography>
                                     <br/>
                                     <Typography variant="subtitle2" gutterBottom>Stdev</Typography>
                                     <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.stdev).toFixed(2)}</Typography>
-                                    <br/>
-                                    <Typography variant="subtitle2" gutterBottom>Count</Typography>
-                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.stdev).toFixed(2)}</Typography>
-                                    <br/>
-
-
                                     {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Mean: </span>{parseFloat(row.mean).toFixed(2)},&nbsp;</Typography>*/}
                                     {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Stdev: </span>{parseFloat(row.stdev).toFixed(2)},&nbsp;</Typography>*/}
                                     {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Min: </span>{parseFloat(row.min).toFixed(2)},&nbsp;</Typography>*/}
                                     {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Max: </span>{parseFloat(row.max).toFixed(2)},&nbsp;</Typography>*/}
                                     {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Count: </span>{parseFloat(row.count).toFixed(2)},&nbsp;</Typography>*/}
                                     {/*<Typography variant="body2" gutterBottom><span className={classes.bold}>Missing: </span>{parseFloat(row.missing).toFixed(2)}&nbsp;</Typography>*/}
-
+                                    <br/>
 
                                 </Grid>
-                                <Grid item xs={6}>
+                                <Grid item xs={4}>
                                     <Typography variant="subtitle2" gutterBottom>Min</Typography>
                                     <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.min).toFixed(2)}</Typography>
                                     <br/>
                                     <Typography variant="subtitle2" gutterBottom>Max</Typography>
                                     <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.max).toFixed(2)}</Typography>
                                     <br/>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography variant="subtitle2" gutterBottom>Count</Typography>
+                                    <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.count).toFixed(2)}</Typography>
+                                    <br/>
                                     <Typography variant="subtitle2" gutterBottom>Missing values</Typography>
                                     <Typography variant="body2" gutterBottom>{parseFloat(this.state.selected_meta.missing).toFixed(2)}</Typography>
+                                    <br/>
                                 </Grid>
                             </Grid>
                         </DialogContentText>
                             {
-                                this.state.selected_meta.distribution_data.graph_type == 'histogram' ?
+                                this.state.selected_meta.distribution_data && this.state.selected_meta.distribution_data.graph_type == 'histogram' &&
                                 <ResponsiveHistogram binType="numeric">
                                     <PatternLines
                                         id="categorical"
@@ -1044,9 +1186,11 @@ class DashboardPage extends React.Component {
                                     />
                                     <XAxis/>
                                     <YAxis/>
-                                </ResponsiveHistogram>:
-                                    <Bar data={distribution_data} />
+                                </ResponsiveHistogram>
                             }
+                                {this.state.selected_meta.distribution_data && this.state.selected_meta.distribution_data.graph_type == 'bar_chart' &&
+                                    <Bar data={distribution_data}/>
+                                }
 
                     </DialogContent>
                     }

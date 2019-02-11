@@ -2,8 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { userActions } from '../_actions';
-import FacebookLogin from 'react-facebook-login';
-import GoogleLogin from 'react-google-login';
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -38,6 +36,10 @@ const styles = theme => ({
         flexDirection: 'column',
         alignItems: 'center',
         padding: `${theme.spacing.unit * 2}px ${theme.spacing.unit * 3}px ${theme.spacing.unit * 3}px`,
+        backgroundColor: '#1F1D1E',
+        "& > *":{
+            color: '#FFF',
+        }
     },
     avatar: {
         margin: theme.spacing.unit,
@@ -50,6 +52,21 @@ const styles = theme => ({
     submit: {
         marginTop: theme.spacing.unit * 3,
     },
+    inputLabel: {
+        color: "#FFF"
+    },
+    inputField:{
+        color: '#FFF',
+        '&::before':{
+            borderBottom: '1px solid #FFF!important'
+        },
+    },
+    customColor: {
+        color: "#FFF",
+        '& > a': {
+            color: theme.palette.primary.main,
+        }
+    }
 });
 
 
@@ -95,21 +112,21 @@ class LoginPage extends React.Component {
             <main className={classes.main}>
                 <CssBaseline />
                 <Paper className={classes.paper}>
-                        <img width={250} src={logo} alt="logo"/>
+                        <img width={125} src={logo} alt="logo"/>
                     <Typography component="h1" variant="h5">
                         Sign in
                     </Typography>
                     <form className={classes.form} onSubmit={this.handleSubmit}>
                         <FormControl margin="normal" required fullWidth>
-                            <InputLabel htmlFor="email">Email Address</InputLabel>
-                            <Input id="email" name="email" autoFocus value={email} onChange={this.handleChange} />
+                            <InputLabel htmlFor="email" className={classes.inputLabel}>Email Address</InputLabel>
+                            <Input id="email" name="email" autoFocus className={classes.inputField} value={email} onChange={this.handleChange} />
                             {submitted && !email &&
                                 <div className="help-block">Email is required</div>
                             }
                         </FormControl>
                         <FormControl margin="normal" required fullWidth>
-                            <InputLabel htmlFor="password">Password</InputLabel>
-                            <Input name="password" type="password" id="password" value={password} onChange={this.handleChange}/>
+                            <InputLabel htmlFor="password" className={classes.inputLabel}>Password</InputLabel>
+                            <Input name="password" type="password" id="password" className={classes.inputField} value={password} onChange={this.handleChange}/>
                         </FormControl>
                         <Button
                             type="submit"
@@ -120,6 +137,11 @@ class LoginPage extends React.Component {
                         >
                             Sign in
                         </Button>
+
+                        <Typography variant="subtitle2" gutterBottom className={classes.customColor} style={{'paddingTop': '10px'}}>
+                            Not signed in? <Link to="/register">Register</Link>
+                        </Typography>
+
                     </form>
                 </Paper>
             </main>

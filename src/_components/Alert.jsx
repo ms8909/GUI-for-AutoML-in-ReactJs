@@ -36,6 +36,7 @@ const styles1 = theme => ({
     },
     icon: {
         fontSize: 20,
+        color: '#FFF'
     },
     iconVariant: {
         opacity: 0.9,
@@ -44,6 +45,7 @@ const styles1 = theme => ({
     message: {
         display: 'flex',
         alignItems: 'center',
+        color: '#FFF'
     },
 });
 

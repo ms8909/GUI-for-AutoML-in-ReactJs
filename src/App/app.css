@@ -47,7 +47,7 @@ nav{
     padding: 6px 12px;
     line-height: 1.42857143;
     text-decoration: none;
-    color: #4caf50;
+    color: #A5C05B;
     background-color: #fff;
     border: 1px solid #ddd;
     margin-left: -1px;
@@ -56,8 +56,8 @@ nav{
 .pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
     z-index: 3;
     color: #fff;
-    background-color: #4caf50;
-    border-color: #4caf50;
+    background-color: #A5C05B;
+    border-color: #A5C05B;
     cursor: default;
 }
 

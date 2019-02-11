@@ -43,11 +43,19 @@
 
 .list-container li{
     padding: 5px;
-    border: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
     cursor: pointer;
+}
+
+.list-container li h6{
+    margin: 0.35rem 0!important;
 }
 
 .list-container li:hover, .list-container li.active{
     background-color: #ccc;
+}
+
+.list-container li:hover h6, .list-container li.active h6{
+    color: #000;
 }
 

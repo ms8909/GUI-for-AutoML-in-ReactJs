@@ -77,7 +77,10 @@ export const userService = {
     getTestingData,
     startTesting,
     getTestingGraph,
-    getTaskProgress
+    getTaskProgress,
+    filterTrainingModels,
+    interruptTraining,
+    updateLoc
 };
 
 function login(email, password) {
@@ -402,6 +405,14 @@ function getTrainingModels(id) {
     return fetch(`${config.apiUrl}/apis/models/${id}/by-training/`, requestOptions).then(handleResponse);
 }
 
+function filterTrainingModels(id, metric) {
+    const requestOptions = {
+        method: 'GET',
+        headers: authHeader()
+    };
+    return fetch(`${config.apiUrl}/apis/models/${id}/by-rank/?metric=${metric}`, requestOptions).then(handleResponse);
+}
+
 function getAccuracy(id, project_id) {
     const requestOptions = {
         method: 'GET',
@@ -465,6 +476,14 @@ function getMeta(id) {
         headers: authHeader()
     };
     return fetch(`${config.apiUrl}/apis/meta/${id}/by-dataset/`, requestOptions).then(handleResponse);
+}
+
+function interruptTraining(id) {
+    const requestOptions = {
+        method: 'GET',
+        headers: authHeader()
+    };
+    return fetch(`${config.apiUrl}/apis/training/${id}/interrupt/`, requestOptions).then(handleResponse);
 }
 
 function addProject(project) {
@@ -650,6 +669,17 @@ function mergeConnections(id, request) {
         body: request
     };
     return fetch(`${config.apiUrl}/apis/connection/${id}/merge/`, requestOptions).then(handleResponse);
+}
+
+
+function updateLoc(nodes) {
+    let header = { 'Content-Type': 'application/json' };
+    const requestOptions = {
+        method: 'POST',
+        headers: {...header, ...authHeader()},
+        body: JSON.stringify(nodes)
+    };
+    return fetch(`${config.apiUrl}/apis/dataset/update-loc/`, requestOptions).then(handleResponse);
 }
 
 

@@ -298,9 +298,13 @@ export function groups(state = {}, action) {
       for(let column of action.meta.meta){
         fields.push({'name': column.column_name})
       }
+      let location;
+      if (action.meta.dataset.loc!=undefined)location = action.meta.dataset.loc;
+      else location = `${offset} 0`;
       let table = { key: action.meta.dataset.name.split('.')[0],
+        id: action.meta.dataset.id,
         fields: fields,
-        loc: `${offset} 0` }
+        loc: location }
       tables.push(table);
       return Object.assign({}, state, {
         metas: metas,
@@ -317,7 +321,8 @@ export function groups(state = {}, action) {
       });
     case projectConstants.GET_DATASET_DATA_SUCCESS:
       let data= action.data;
-      let keys=Object.keys(data[0]);
+      let keys=[];
+      if(data.length>0)keys = Object.keys(data[0]);
       let arr = [];
       let columns = [];
 

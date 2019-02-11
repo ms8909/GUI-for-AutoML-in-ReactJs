@@ -42,6 +42,7 @@
 
 .dropzone{
     height: 100%;
+    padding: 0!important;
 }
 
 .treeview-container .deni-react-treeview-container {

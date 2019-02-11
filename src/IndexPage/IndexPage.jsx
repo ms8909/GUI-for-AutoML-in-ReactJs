@@ -38,7 +38,8 @@ const styles = theme => ({
     root: {
         flexGrow: 1,
         backgroundColor: theme.palette.grey['100'],
-        paddingBottom: 200
+        paddingBottom: 200,
+        minHeight: '100vh'
     },
     grid: {
         width: 1200,
@@ -64,7 +65,7 @@ const styles = theme => ({
     },
     outlinedButtom: {
         textTransform: 'uppercase',
-        margin: theme.spacing.unit
+        marginRight: '18px'
     },
     media: {
         height: 0,
@@ -87,11 +88,24 @@ const styles = theme => ({
         color: theme.palette.error.main
     },
     avatar: {
-        backgroundColor: theme.palette.primary.main
+        backgroundColor: theme.palette.primary.main,
+        color: '#FFF'
     },
     dashboard:{
-        padding: '25px'
-    }
+        // padding: '12px 40px 60px 12px !important'
+        padding: '30px !important'
+    },
+    block:{
+        paddingLeft: '18px'
+    },
+    dashboardDialog: {
+        '& > div':{
+            '& > div':{
+                height: '225px',
+                width: '225px'
+            }
+        }
+    },
 });
 
 class IndexPage extends React.Component {
@@ -253,9 +267,9 @@ class IndexPage extends React.Component {
                                 <div className={classes.topBar}>
                                     <div className={classes.block}>
                                         <Typography variant="h6" gutterBottom>Dashboard</Typography>
-                                        <Typography variant="body2">
-                                            Manage your training dashboards
-                                        </Typography>
+                                        {/*<Typography variant="body2">*/}
+                                            {/*Manage your training dashboards*/}
+                                        {/*</Typography>*/}
                                     </div>
                                     <div>
                                         <Button onClick={()=> (this.setState({ open: true }))} variant="outlined" className={classes.outlinedButtom}>
@@ -297,6 +311,7 @@ class IndexPage extends React.Component {
                         open={this.state.open}
                         onClose={()=> (this.setState({ open: false }))}
                         aria-labelledby="form-dialog-title"
+                        className={classes.dashboardDialog}
                     >
                         <DialogTitle id="form-dialog-title">Add dashboad</DialogTitle>
 
