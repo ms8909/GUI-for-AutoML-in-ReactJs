@@ -19,6 +19,12 @@ import DoneIcon from '@material-ui/icons/Done';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Pusher from "pusher-js";
 import * as zoom from 'chartjs-plugin-zoom';
+import config from 'config';
+import * as am4core from "@amcharts/amcharts4/core";
+import * as am4charts from "@amcharts/amcharts4/charts";
+import am4themes_animated from "@amcharts/amcharts4/themes/animated";
+
+am4core.useTheme(am4themes_animated);
 
 var options={
     pan:{
@@ -126,6 +132,7 @@ class GraphPage extends React.Component {
         super(props);
         this.handleChange = this.handleChange.bind(this);
         this.proceedTesting = this.proceedTesting.bind(this);
+        this.initializeGraph = this.initializeGraph.bind(this);
         this.state = {
             selected : -1,
             progress: {step: -1},
@@ -134,8 +141,44 @@ class GraphPage extends React.Component {
     }
     componentWillUnmount() {
         channelSubscriber.unbind();
+        if (this.chart) {
+            this.chart.dispose();
+        }
     }
+
+    initializeGraph(){
+        let chart = am4core.create("chartdiv", am4charts.XYChart);
+
+        chart.paddingRight = 20;
+
+        let dateAxis = chart.xAxes.push(new am4charts.CategoryAxis());
+        dateAxis.dataFields.category = "year";
+        // dateAxis.renderer.grid.template.location = 0;
+
+        let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+        valueAxis.tooltip.disabled = true;
+        valueAxis.renderer.minWidth = 35;
+
+        let series = chart.series.push(new am4charts.LineSeries());
+        series.dataFields.categoryX = "year";
+        series.dataFields.valueY = "value";
+        series.strokeWidth = 2;
+        series.stroke = am4core.color("#A5C05B");
+
+        series.tooltipText = "{valueY.value}";
+        chart.cursor = new am4charts.XYCursor();
+
+        let scrollbarX = new am4charts.XYChartScrollbar();
+        scrollbarX.series.push(series);
+        chart.scrollbarX = scrollbarX;
+
+        this.chart = chart;
+    }
+
     componentDidMount() {
+
+        //
+        //
         const pusher = new Pusher('469a4013ee4603be5010', {
             cluster: 'ap2',
             forceTLS: true
@@ -226,6 +269,24 @@ class GraphPage extends React.Component {
                 this.props.dispatch(projectActions.getDatasetMeta({id: set.id, name: set.name}))
             }
         }
+        if(groups.graph != nextGroups.graph){
+            if(nextGroups.graph.length > 0){
+                var data = nextGroups.graph[0].data;
+                var chart_data = [];
+                for(let i=0; i< data.x.length; i++){
+                    chart_data.push({
+                        "year": i,
+                        "value": data.y[i]
+                    })
+                }
+                setTimeout(()=>{
+                    this.initializeGraph()
+                    this.chart.data = chart_data
+                },500);
+
+            }
+        }
+
         if(groups.task!=nextGroups.task){
             if(nextGroups.task.result.event == 'test_csv' || nextGroups.task.result.event == 'generate_graph_csv'){
                 if(nextGroups.task.result.step!=5){
@@ -408,16 +469,25 @@ class GraphPage extends React.Component {
                                     <Grid xs={8}>
                                         <Typography variant="h6" gutterBottom>Prediction</Typography>
                                     </Grid>
-                                    <Grid xs={4} style={{textAlign: 'right'}}>
-                                        <Button onClick={()=>{console.log('download csv')}} variant="outlined" color="primary">
-                                            Download predictions
-                                        </Button>
-                                    </Grid>
+                                    {   groups.graph && groups.graph.length > 0 &&
+
+                                        <Grid xs={4} style={{textAlign: 'right'}}>
+                                            <Button onClick={() => {
+                                                window.open(
+                                                    config.apiUrl+groups.graph[0].csv_url,
+                                                    '_blank'
+                                                );
+                                            }} variant="outlined" color="primary">
+                                                Download predictions
+                                            </Button>
+                                        </Grid>
+                                    }
                                 </Grid>
                                 {   prediction_data ?
-                                    <Line data={prediction_data} options={options}/>:
+                                    <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>:
                                     <Typography variant="body2" gutterBottom>no graph generated</Typography>
                                 }
+                                {/*<div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>:*/}
                             </Paper>
                         </Grid>
                     </Grid>
@@ -426,6 +496,8 @@ class GraphPage extends React.Component {
         );
     }
 }
+
+{/*<Line data={prediction_data} options={options}/>*/}
 
 function mapStateToProps(state) {
     const { groups, authentication } = state;

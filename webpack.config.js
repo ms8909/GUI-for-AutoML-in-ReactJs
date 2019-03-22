@@ -1,6 +1,7 @@
 var path = require('path');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
+var webpack = require('webpack');
 
 module.exports = {
     entry: './src/index.jsx',
@@ -36,7 +37,32 @@ module.exports = {
         template: './src/index.html',
         filename: 'index.html',
         inject: 'body'
-    }), new CopyWebpackPlugin([ { from: 'src/assets', to: 'assets' } ])
+    }), new CopyWebpackPlugin([ { from: 'src/assets', to: 'assets' } ]),
+        new webpack.optimize.AggressiveMergingPlugin(),
+        new webpack.optimize.OccurrenceOrderPlugin(),
+        new webpack.optimize.DedupePlugin(),
+        new webpack.optimize.UglifyJsPlugin({
+            mangle: true,
+            compress: {
+                warnings: false, // Suppress uglification warnings
+                pure_getters: true,
+                unsafe: true,
+                unsafe_comps: true,
+                screw_ie8: true,
+                conditionals: true,
+                unused: true,
+                comparisons: true,
+                sequences: true,
+                dead_code: true,
+                evaluate: true,
+                if_return: true,
+                join_vars: true
+            },
+            output: {
+                comments: false,
+            },
+            exclude: [/\.min\.js$/gi] // skip pre-minified libs
+        }),
     ],
     devServer: {
         historyApiFallback: true
